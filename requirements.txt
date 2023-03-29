@@ -1,0 +1,5 @@
+paho-mqtt==1.6.1
+psycopg[binary,pool]==3.1.8
+environs==9.5.0
+streamz==0.6.4
+parse==1.19.0
