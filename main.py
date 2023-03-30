@@ -107,13 +107,14 @@ def extract_values_from_message(message: MQTTMessage) -> Tuple[Any]:
 
     # Payload handling
     payload = json.loads(message.payload)
-    dt = datetime.fromtimestamp(payload["timestamp"])
+    timestamp_as_dt = datetime.fromtimestamp(payload["timestamp"])
     value = payload["value"]
 
+    # pylint: disable=fixme
     # TODO: Generic mapping of topic structure and payload to field
     # values would greatly increase the usability of this service
 
-    output = (dt, vessel_id, parameter_id, value)
+    output = (timestamp_as_dt, vessel_id, parameter_id, value)
 
     LOGGER.debug("Extracted values: %s", output)
     return output
