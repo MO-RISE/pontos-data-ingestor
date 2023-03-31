@@ -64,9 +64,11 @@ pool = ConnectionPool(
 
 # Create SQL insert statement
 SQL_INSERT_STATEMENT = sql.SQL("INSERT INTO {table} VALUES (%s, %s, %s, %s)").format(
-    table=sql.Identifier(PG_TABLE_NAME)
+    table=sql.Identifier(*PG_TABLE_NAME.split("."))
 )
-TOPIC_TO_FIELD_NAMES_PARSER = parse.compile("PONTOS/{vessel_id:w}/{parameter_id:w}")
+TOPIC_TO_FIELD_NAMES_PARSER = parse.compile(
+    f"{MQTT_BASE_TOPIC[:-1]}" + "{vessel_id:w}/{parameter_id:w}"
+)
 
 
 @mq.connect_callback()
