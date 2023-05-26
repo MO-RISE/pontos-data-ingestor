@@ -8,6 +8,9 @@ services:
       - MQTT_BROKER_HOST=broker
       - PG_CONNECTION_STRING=postgresql://test_user:test_pass@db:5432/test
       - PG_TABLE_NAME=test_table
+      - MQTT_SUBSCRIBE_TOPIC=PONTOS/#
+      - TOPIC_PARSER_FORMAT=PONTOS/{vessel_id:w}/{tag:w}/{index:d}
+      - PAYLOAD_MAP_FORMAT=timestamp=epoch,value=sensor_value
       - LOG_LEVEL=DEBUG
     depends_on:
       - broker

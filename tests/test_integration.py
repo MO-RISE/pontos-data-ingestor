@@ -15,8 +15,8 @@ def fetch_all_rows():
 
 def publish_single_row():
     publish.single(
-        "PONTOS/test_vessel/test_parameter",
-        json.dumps({"timestamp": 12345678, "value": 42}),
+        "PONTOS/test_vessel/test_parameter/1",
+        json.dumps({"epoch": 12345678, "sensor_value": 42}),
         hostname="localhost",
         port=1883,
     )
