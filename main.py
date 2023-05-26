@@ -10,6 +10,8 @@ import parse
 from environs import Env
 from streamz import Stream
 from paho.mqtt.client import Client as MQTT, MQTTv5, MQTTMessage
+from paho.mqtt.properties import Properties
+from paho.mqtt.packettypes import PacketTypes
 from psycopg import sql
 from psycopg_pool import ConnectionPool
 
@@ -21,16 +23,22 @@ env = Env()
 
 MQTT_BROKER_HOST = env("MQTT_BROKER_HOST")
 MQTT_BROKER_PORT = env.int("MQTT_BROKER_PORT", 1883)
-MQTT_CLIENT_ID = env("MQTT_CLIENT_ID", None)
+MQTT_CLIENT_ID = env("MQTT_CLIENT_ID", "pontos-data-ingestor")
 MQTT_TRANSPORT = env("MQTT_TRANSPORT", "tcp")
 MQTT_TLS = env.bool("MQTT_TLS", False)
+MQTT_CLEAN_START = env.bool("MQTT_CLEAN_START", False)
+MQTT_SESSION_EXPIRY_INTERVAL = env.int("MQTT_SESSION_EXPIRY_INTERVAL", None)
 MQTT_USER = env("MQTT_USER", None)
 MQTT_PASSWORD = env("MQTT_PASSWORD", None)
-MQTT_BASE_TOPIC = env("MQTT_BASE_TOPIC", "PONTOS/#")
+MQTT_SUBSCRIBE_TOPIC = env("MQTT_SUBSCRIBE_TOPIC")
+MQTT_SUBSCRIBE_TOPIC_QOS = env.int("MQTT_SUBSCRIBE_TOPIC_QOS", 0)
 
 PG_CONNECTION_STRING = env("PG_CONNECTION_STRING")
 PG_TABLE_NAME = env("PG_TABLE_NAME")
 PG_POOL_SIZE = env.int("PG_POOL_SIZE", 1)
+
+TOPIC_PARSER_FORMAT = env("TOPIC_PARSER_FORMAT")
+PAYLOAD_MAP_FORMAT = env.dict("PAYLOAD_MAP_FORMAT")
 
 PARTITION_SIZE = env.int("PARTITION_SIZE", 25)
 PARTITION_TIMEOUT = env.int("PARTITION_TIMEOUT", 5)
@@ -66,9 +74,7 @@ pool = ConnectionPool(
 SQL_INSERT_STATEMENT = sql.SQL("INSERT INTO {table} VALUES (%s, %s, %s, %s)").format(
     table=sql.Identifier(*PG_TABLE_NAME.split("."))
 )
-TOPIC_TO_FIELD_NAMES_PARSER = parse.compile(
-    f"{MQTT_BASE_TOPIC[:-1]}" + "{vessel_id:w}/{parameter_id:w}"
-)
+TOPIC_PARSER = parse.compile(TOPIC_PARSER_FORMAT)
 
 
 @mq.connect_callback()
@@ -82,7 +88,7 @@ def on_connect(
         )
         return
 
-    client.subscribe(MQTT_BASE_TOPIC)
+    client.subscribe(MQTT_SUBSCRIBE_TOPIC, qos=MQTT_SUBSCRIBE_TOPIC_QOS)
 
 
 @mq.disconnect_callback()
@@ -102,23 +108,42 @@ def extract_values_from_message(message: MQTTMessage) -> Tuple[Any]:
 
     LOGGER.debug("Converting MQTTMessage to tuple of values")
 
+    fields = {}
+
     # Topic handling
-    res = TOPIC_TO_FIELD_NAMES_PARSER.parse(message.topic)
-    vessel_id = res["vessel_id"]
-    parameter_id = res["parameter_id"]
+    res = TOPIC_PARSER.parse(message.topic)
+    if not res:
+        raise ValueError(
+            f"Topic: {message.topic} did not match TOPIC_PARSER_FORMAT: {TOPIC_PARSER_FORMAT}"
+        )
+    fields.update(res.named)
 
     # Payload handling
     payload = json.loads(message.payload)
-    timestamp_as_dt = datetime.fromtimestamp(payload["timestamp"])
-    value = payload["value"]
+    fields.update(
+        {
+            field_key: payload[payload_key]
+            for field_key, payload_key in PAYLOAD_MAP_FORMAT.items()
+        }
+    )
 
-    # pylint: disable=fixme
-    # TODO: Generic mapping of topic structure and payload to field
-    # values would greatly increase the usability of this service
+    LOGGER.debug("Extracted fields: %s", fields)
 
-    output = (timestamp_as_dt, vessel_id, parameter_id, value)
+    # Create parameter_id from tag and index
+    fields["parameter_id"] = f"{fields.pop('tag')}_{fields.pop('index')}"
 
-    LOGGER.debug("Extracted values: %s", output)
+    # Convert timestamp into datetime format
+    fields["timestamp"] = datetime.fromtimestamp(fields["timestamp"])
+
+    LOGGER.debug("After conversions: %s", fields)
+
+    # Convert to tuple
+    output = tuple(
+        [fields[key] for key in ("timestamp", "vessel_id", "parameter_id", "value")]
+    )
+
+    LOGGER.debug("Tuple for database insertion: %s", output)
+
     return output
 
 
@@ -134,11 +159,11 @@ if __name__ == "__main__":
     pipe = Stream()
 
     values_extractor = pipe.map(extract_values_from_message)
-    values_extractor.on_exception().sink(print)
+    values_extractor.on_exception(logger=LOGGER)
 
     batcher = values_extractor.partition(PARTITION_SIZE, timeout=PARTITION_TIMEOUT)
     db_sink = batcher.sink(batch_insert_to_db)
-    db_sink.on_exception().sink(print)
+    db_sink.on_exception(logger=LOGGER)
 
     @mq.message_callback()
     def push_to_pipe(client, userdata, message):  # pylint: disable=unused-argument
@@ -152,7 +177,20 @@ if __name__ == "__main__":
 
     # Connect to broker
     LOGGER.info("Connecting to MQTT broker %s %d", MQTT_BROKER_HOST, MQTT_BROKER_PORT)
-    mq.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT)
+
+    # Construct properties
+    properties = None
+    if MQTT_SESSION_EXPIRY_INTERVAL:
+        properties = Properties(PacketTypes.CONNECT)
+        properties.SessionExpiryInterval = MQTT_SESSION_EXPIRY_INTERVAL
+
+    # Connect!
+    mq.connect(
+        MQTT_BROKER_HOST,
+        MQTT_BROKER_PORT,
+        clean_start=MQTT_CLEAN_START,
+        properties=properties,
+    )
 
     LOGGER.info(
         "Connecting to %s using %d pooled connections",
