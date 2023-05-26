@@ -79,7 +79,7 @@ TOPIC_PARSER = parse.compile(TOPIC_PARSER_FORMAT)
 
 @mq.connect_callback()
 def on_connect(
-    client, userdata, flags, reason_code, properties=None
+    client, userdata, flags, reason_code, props=None
 ):  # pylint: disable=unused-argument
     """Subscribe on connect"""
     if reason_code != 0:
@@ -93,7 +93,7 @@ def on_connect(
 
 @mq.disconnect_callback()
 def on_disconnect(
-    client, userdata, flags, reason_code, properties=None
+    client, userdata, flags, reason_code, props=None
 ):  # pylint: disable=unused-argument
     """Subscribe on connect"""
     if reason_code != 0:
@@ -139,7 +139,7 @@ def extract_values_from_message(message: MQTTMessage) -> Tuple[Any]:
 
     # Convert to tuple
     output = tuple(
-        [fields[key] for key in ("timestamp", "vessel_id", "parameter_id", "value")]
+        fields[key] for key in ("timestamp", "vessel_id", "parameter_id", "value")
     )
 
     LOGGER.debug("Tuple for database insertion: %s", output)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     LOGGER.info("Connecting to MQTT broker %s %d", MQTT_BROKER_HOST, MQTT_BROKER_PORT)
 
     # Construct properties
-    properties = None
+    properties = None  # pylint: disable=invalid-name
     if MQTT_SESSION_EXPIRY_INTERVAL:
         properties = Properties(PacketTypes.CONNECT)
         properties.SessionExpiryInterval = MQTT_SESSION_EXPIRY_INTERVAL
