@@ -49,7 +49,7 @@ The data ingestor provides a flexible configuration setup of where to find these
 
   A set of "keys" mapping to message payload "fields".
 
-  Example: `PAYLOAD_MAP_FORMAT=timestamp=timestamp,value=sensor_value`
+  Example: `PAYLOAD_MAP_FORMAT=timestamp=epoch,value=sensor_value`
 
   Which will accept JSON payloads of the format `{"epoch": 1685078782, "sensor_value": 42, ...}` and parse it as:
   ```python
@@ -120,6 +120,9 @@ Maximum time between writes to database (Optional, default: 5)
 
 LOG_LEVEL
 Log level of application (Optional, default: WARNING)
+
+DISCARD_NULL_VALUES
+Wether to discard null values or not in the parsed fields (Optional, default: false)
 ```
 
 ## Development
