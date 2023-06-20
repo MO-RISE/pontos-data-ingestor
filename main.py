@@ -43,6 +43,8 @@ PAYLOAD_MAP_FORMAT = env.dict("PAYLOAD_MAP_FORMAT")
 PARTITION_SIZE = env.int("PARTITION_SIZE", 25)
 PARTITION_TIMEOUT = env.int("PARTITION_TIMEOUT", 5)
 
+DISCARD_NULL_VALUES = env.bool("DISCARD_NULL_VALUES", False)
+
 LOG_LEVEL = env.log_level("LOG_LEVEL", logging.WARNING)
 
 # Setup logger
@@ -141,6 +143,9 @@ def extract_values_from_message(message: MQTTMessage) -> Tuple[Any]:
     output = tuple(
         fields[key] for key in ("timestamp", "vessel_id", "parameter_id", "value")
     )
+
+    if DISCARD_NULL_VALUES and None in output:
+        raise TypeError(f"Fields of NoneType found! {fields}")
 
     LOGGER.debug("Tuple for database insertion: %s", output)
 

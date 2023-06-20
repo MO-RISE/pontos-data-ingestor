@@ -46,3 +46,11 @@ def test_extract_values_from_message():
 
     with pytest.raises(ValueError):
         extract_values_from_message(msg)
+
+    # Null values not accepted
+    msg = MQTTMessage()
+    msg.topic = "PONTOS/1/2/3".encode()
+    msg.payload = json.dumps({"epoch": 1685078782, "sensor_value": None})
+
+    with pytest.raises(TypeError):
+        extract_values_from_message(msg)
