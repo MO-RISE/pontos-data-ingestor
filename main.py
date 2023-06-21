@@ -23,7 +23,7 @@ env = Env()
 
 MQTT_BROKER_HOST = env("MQTT_BROKER_HOST")
 MQTT_BROKER_PORT = env.int("MQTT_BROKER_PORT", 1883)
-MQTT_CLIENT_ID = env("MQTT_CLIENT_ID", "pontos-data-ingestor")
+MQTT_CLIENT_ID = env("MQTT_CLIENT_ID", None)
 MQTT_TRANSPORT = env("MQTT_TRANSPORT", "tcp")
 MQTT_TLS = env.bool("MQTT_TLS", False)
 MQTT_CLEAN_START = env.bool("MQTT_CLEAN_START", False)
