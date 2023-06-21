@@ -71,7 +71,7 @@ MQTT_BROKER_PORT
 Port of MQTT broker to connect to (Optional, default: 1883)
 
 MQTT_CLIENT_ID
-Client id to use for MQTT connection (Optional, default: pontos-data-ingestor)
+Client id to use for MQTT connection (Optional, default: None)
 
 MQTT_TRANSPORT
 Underlying MQTT transport protocol, can be either 'tcp' or 'websocket' (Optional, default: 'tcp')
@@ -80,7 +80,7 @@ MQTT_TLS
 Wether to use TLS when conencting to the MQTT broker (Optional, default: False)
 
 MQTT_CLEAN_START
-Wether to request a clean start or not when connecting to the broker (Optional, default: False)
+Wether to request a clean start or not when connecting to the broker (Optional, default: True)
 
 MQTT_SESSION_EXPIRY_INTERVAL
 Session expiry interval used for any session created by the broker (Optional, default: None)
