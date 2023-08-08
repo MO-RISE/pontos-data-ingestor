@@ -73,9 +73,9 @@ pool = ConnectionPool(
 )
 
 # Create SQL insert statement
-SQL_INSERT_STATEMENT = sql.SQL("INSERT INTO {table} VALUES (%s, %s, %s, %s)").format(
-    table=sql.Identifier(*PG_TABLE_NAME.split("."))
-)
+SQL_INSERT_STATEMENT = sql.SQL(
+    "INSERT INTO {table} VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING"
+).format(table=sql.Identifier(*PG_TABLE_NAME.split(".")))
 TOPIC_PARSER = parse.compile(TOPIC_PARSER_FORMAT)
 
 

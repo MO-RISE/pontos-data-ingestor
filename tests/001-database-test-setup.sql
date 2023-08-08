@@ -4,5 +4,6 @@ CREATE TABLE test_table (
    time             TIMESTAMPTZ                 NOT NULL,
    vessel_id        TEXT                        NOT NULL,
    parameter_id     TEXT                        NOT NULL,
-   value            TEXT                        NOT NULL
+   value            TEXT                        NOT NULL,
+   UNIQUE(time, vessel_id, parameter_id)
 );

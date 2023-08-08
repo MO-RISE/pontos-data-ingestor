@@ -13,18 +13,18 @@ def fetch_all_rows():
     )
 
 
-def publish_single_row():
+def publish_single_row(epoch: int):
     publish.single(
         "PONTOS/test_vessel/test_parameter/1",
-        json.dumps({"epoch": 12345678, "sensor_value": 42}),
+        json.dumps({"epoch": epoch, "sensor_value": 42}),
         hostname="localhost",
         port=1883,
     )
 
 
-def test_write_single_message_to_topic(compose):
+def test_publish_to_single_topic(compose):
     # Adding a single row to the db via mqtt
-    publish_single_row()
+    publish_single_row(0)
 
     # We should not have written to db yet
     rows = fetch_all_rows()
@@ -37,8 +37,8 @@ def test_write_single_message_to_topic(compose):
     assert len(rows) == 1
 
     # Publish 30 messages
-    for _ in range(30):
-        publish_single_row()
+    for ix in range(1, 31):
+        publish_single_row(ix)
 
     time.sleep(1)
 
@@ -52,3 +52,29 @@ def test_write_single_message_to_topic(compose):
     # Waiting some more should yield the additional lines
     rows = fetch_all_rows()
     assert len(rows) == 31
+
+    ## Duplicates
+
+    # Publish 15 more duplicates
+    for _ in range(15):
+        publish_single_row(0)
+
+    # Publish another non-duplicate message
+    publish_single_row(31)
+
+    # Publish 15 more duplicates
+    for _ in range(15):
+        publish_single_row(0)
+
+    time.sleep(1)
+
+    # Partition size is 25 by default, hence we
+    # should now have 32 rows in the db
+    rows = fetch_all_rows()
+    assert len(rows) == 32
+
+    time.sleep(6)
+
+    # Waiting some more should still only show 22 rows
+    rows = fetch_all_rows()
+    assert len(rows) == 32

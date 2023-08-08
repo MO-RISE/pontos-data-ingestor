@@ -77,7 +77,7 @@ MQTT_TRANSPORT
 Underlying MQTT transport protocol, can be either 'tcp' or 'websocket' (Optional, default: 'tcp')
 
 MQTT_TLS
-Wether to use TLS when conencting to the MQTT broker (Optional, default: False)
+Wether to use TLS when connecting to the MQTT broker (Optional, default: False)
 
 MQTT_CLEAN_START
 Wether to request a clean start or not when connecting to the broker (Optional, default: True)
