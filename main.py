@@ -135,7 +135,7 @@ def extract_values_from_message(message: MQTTMessage) -> Tuple[Any]:
     fields["parameter_id"] = f"{fields.pop('tag')}_{fields.pop('index')}"
 
     # Convert timestamp into datetime format
-    fields["timestamp"] = datetime.fromtimestamp(fields["timestamp"])
+    fields["timestamp"] = datetime.fromtimestamp(float(fields["timestamp"]))
 
     LOGGER.debug("After conversions: %s", fields)
 
